@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="globals.css" />
+    <link rel="stylesheet" href="styleguide.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="site">
+      <div class="rectangle"></div>
+      <div class="overlap-group">
+        <div class="card-components">
+          <div class="card">
+            <div class="text-card">
+              <p class="KUNSTHALLE-d">
+                <span class="text-wrapper">KUNSTHALLE</span>
+                <span class="span"> </span>
+                <span class="text-wrapper-2">DÜSSELDORF</span>
+                <span class="span">  </span>
+                <span class="text-wrapper-3"
+                  >Grabbeplatz 4 Düsseldorf, DE 40213 Haltestelle &gt; Heinrich-Heine Allee </span
+                >
+                <a
+                  href="https://www.google.com/maps/place/Kunsthalle+D%C3%BCsseldorf/@51.2275955,6.7733074,17z/data=!3m1!4b1!4m6!3m5!1s0x479e758ccb141b97:0x4c578e5fe8cdd67a!8m2!3d51.2275955!4d6.7758823!16s%2Fm%2F05b0gfz?entry=ttu"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  ><span class="text-wrapper-4">Google Maps</span></a
+                >
+                <span class="text-wrapper-3"
+                  >  Dienstag – Sonntag, <br />Feiertage: 11 – 18 Uhr  Kasse und Museumsshop: Tel.: +49 (0)211 – 54 23
+                  77 25</span
+                >
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="frame">
+          <div class="card-wrapper">
+            <div class="text-card-wrapper">
+              <div class="div">
+                <div class="text-wrapper-5">AUSSTELLUNGEN</div>
+                <div class="text-wrapper-6">01 Aktuelle</div>
+                <div class="text-wrapper-6">02 Kommende</div>
+                <div class="text-wrapper-6">03 Vergangene</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-wrapper">
+            <div class="text-card-wrapper">
+              <div class="div">
+                <div class="text-wrapper-5">INFORMATIONEN</div>
+                <div class="text-wrapper-7">Tickets<br />&gt; Kaufen</div>
+                <div class="text-wrapper-7">Barrierefreiheit<br />&gt; Aktuell</div>
+                <div class="text-wrapper-7">Museum<br />&gt; Plan</div>
+                <div class="text-wrapper-7">Planung<br />&gt; Führungen</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-wrapper">
+            <div class="text-card-wrapper">
+              <div class="div">
+                <div class="text-wrapper-5">ÜBER UNS</div>
+                <div class="text-wrapper-6">01 Das Haus</div>
+                <div class="text-wrapper-6">02 Unsere Geschichte</div>
+                <div class="text-wrapper-6">03 Unser Team</div>
+                <div class="text-wrapper-6">04 Archiv</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-wrapper">
+            <div class="div-wrapper">
+              <div class="div">
+                <div class="text-wrapper-5">LOCATIONS</div>
+                <div class="text-wrapper-7">Café<br />&gt; Weird Space</div>
+                <div class="text-wrapper-7">Bar<br />&gt; Salon des Amateurs</div>
+                <div class="text-wrapper-7">Co-Working Space<br />&gt; Anmelden</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="multi-card">
+        <div class="text-card">
+          <p class="a">
+            <span class="text-wrapper-8">Installationsansicht</span>
+            <span class="text-wrapper-9"> </span>
+            <span class="text-wrapper-10">Karl Schmidt-Rottluff Stipendium. <br /></span>
+            <span class="text-wrapper-9"
+              ><br />Die Ausstellung 2023 Kunsthalle Düsseldorf, 2023 <br />Foto: Katja Illner</span
+            >
+          </p>
+        </div>
+      </div>
+      <div class="multi-card-2">
+        <div class="text-card">
+          <p class="a">
+            <span class="text-wrapper-9"
+              >Seit 1989 zeigt die Kunsthalle Düsseldorf alle vier Jahre in Kooperation mit der Studienstiftung des
+              deutschen Volkes die Preisträger:innen-Ausstellung zum 1975 begründeten Karl Schmidt-Rottluff Stipendium.
+              Die von Schmidt-Rottluff gegründete Förderungsstiftung vergibt zweijährige postgraduale Stipendien für
+              herausragende künstlerische Leistungen. In der Kunsthalle präsentieren die letzten zwei Jahrgänge ihre
+              während der Laufzeit des Stipendiums erarbeiteten Werke.<br /><br
+            /></span>
+            <span class="text-wrapper-11">Beteiligte Künstler*innen:</span>
+            <span class="text-wrapper-9">
+              Matej Bosnić (* 1990), Cudelice Brazelton IV (* 1991), Nicolas Fehr (* 1989), Daniel Hopp (* 1983), Ava
+              Irandoost (* 1986), Ida Kammerloch (* 1991), Larissa Rosa Lackner (* 1987), Vera Palme (* 1983), Julia
+              Phillips (* 1985), Andrėja Šaltytė (* 1988), Silke Schönfeld (* 1988)<br /><br />Zur Ausstellung erscheint
+              ein Katalog-Schuber.<br /><br
+            /></span>
+            <span class="text-wrapper-8">Eröffnung: <br /></span>
+            <span class="text-wrapper-9">Freitag, der 1. Dezember, <br />18 – 22 Uhr.</span>
+          </p>
+        </div>
+      </div>
+      <div class="overlap">
+        <div class="element-wrapper"><img class="element" src="img/20231204-142429-1.png" /></div>
+      </div>
+      <div class="multi-card-3">
+        <div class="text-card"><div class="text-wrapper-12">A</div></div>
+      </div>
+      <img class="icons-buttons" src="img/icons-buttons.svg" />
+      <div class="suchen"><div class="text-wrapper-13">Suchen</div></div>
+      <div class="white-overlay"><div class="white-overlay-2"></div></div>
+      <div class="icons-buttons-2">
+        <img class="arrow" src="img/arrow-1.svg" />
+        <p class="tickets-kaufen">
+          <span class="text-wrapper-8">Tickets&nbsp;&nbsp;</span> <span class="text-wrapper-10">KAufen</span>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
