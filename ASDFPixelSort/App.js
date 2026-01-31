@@ -1,511 +1,500 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  SafeAreaView,
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
-  Image,
-  Alert,
-  ScrollView,
-  Dimensions,
-  ActivityIndicator,
-  Platform
+  useWindowDimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
-import * as MediaLibrary from 'expo-media-library';
-import * as FileSystem from 'expo-file-system';
-import Slider from '@react-native-community/slider';
-import { ImageProcessor } from './utils/imageProcessor';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const DOT_MATRIX = {
+  '0': [
+    '11111',
+    '10001',
+    '10001',
+    '10001',
+    '10001',
+    '10001',
+    '11111',
+  ],
+  '1': [
+    '00100',
+    '01100',
+    '00100',
+    '00100',
+    '00100',
+    '00100',
+    '01110',
+  ],
+  '2': [
+    '11111',
+    '00001',
+    '00001',
+    '11111',
+    '10000',
+    '10000',
+    '11111',
+  ],
+  '3': [
+    '11111',
+    '00001',
+    '00001',
+    '11111',
+    '00001',
+    '00001',
+    '11111',
+  ],
+  '4': [
+    '10001',
+    '10001',
+    '10001',
+    '11111',
+    '00001',
+    '00001',
+    '00001',
+  ],
+  '5': [
+    '11111',
+    '10000',
+    '10000',
+    '11111',
+    '00001',
+    '00001',
+    '11111',
+  ],
+  '6': [
+    '11111',
+    '10000',
+    '10000',
+    '11111',
+    '10001',
+    '10001',
+    '11111',
+  ],
+  '7': [
+    '11111',
+    '00001',
+    '00010',
+    '00100',
+    '01000',
+    '01000',
+    '01000',
+  ],
+  '8': [
+    '11111',
+    '10001',
+    '10001',
+    '11111',
+    '10001',
+    '10001',
+    '11111',
+  ],
+  '9': [
+    '11111',
+    '10001',
+    '10001',
+    '11111',
+    '00001',
+    '00001',
+    '11111',
+  ],
+  ':': [
+    '0',
+    '1',
+    '0',
+    '0',
+    '1',
+    '0',
+    '0',
+  ],
+  '.': [
+    '0',
+    '0',
+    '0',
+    '0',
+    '0',
+    '1',
+    '0',
+  ],
+  ' ': [
+    '00000',
+    '00000',
+    '00000',
+    '00000',
+    '00000',
+    '00000',
+    '00000',
+  ],
+};
 
-export default function App() {
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [processedImage, setProcessedImage] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [progressText, setProgressText] = useState('');
-  const [sortMode, setSortMode] = useState(0);
-  const [thresholds, setThresholds] = useState({
-    white: -12345678,
-    black: -3456789,
-    bright: 127,
-    dark: 223
-  });
+const CHAR_COLUMNS = {
+  '0': 5,
+  '1': 5,
+  '2': 5,
+  '3': 5,
+  '4': 5,
+  '5': 5,
+  '6': 5,
+  '7': 5,
+  '8': 5,
+  '9': 5,
+  ':': 1,
+  '.': 1,
+  ' ': 5,
+};
 
-  const imageProcessor = useRef(new ImageProcessor()).current;
+const DOT_GAP = 2;
+const CHAR_GAP = 6;
+const PANEL_HORIZONTAL = 20;
+const PANEL_PADDING = 18;
 
-  const sortModes = [
-    { id: 0, name: 'White', color: '#ffffff', description: 'Sort based on white threshold' },
-    { id: 1, name: 'Black', color: '#000000', description: 'Sort based on black threshold' },
-    { id: 2, name: 'Bright', color: '#ffeb3b', description: 'Sort based on brightness' },
-    { id: 3, name: 'Dark', color: '#424242', description: 'Sort based on darkness' }
-  ];
+const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 
-  useEffect(() => {
-    requestPermissions();
-  }, []);
+const getDotSize = (text, availableWidth, dotGap, charGap) => {
+  const characters = text.split('');
+  const totalColumns = characters.reduce(
+    (sum, char) => sum + (CHAR_COLUMNS[char] || 5),
+    0
+  );
+  const totalDotGaps = characters.reduce((sum, char) => {
+    const columns = CHAR_COLUMNS[char] || 5;
+    return sum + (columns - 1) * dotGap;
+  }, 0);
+  const totalCharGaps = Math.max(0, characters.length - 1) * charGap;
+  const rawSize =
+    (availableWidth - totalDotGaps - totalCharGaps) / Math.max(1, totalColumns);
+  return Math.max(4, Math.floor(rawSize));
+};
 
-  const requestPermissions = async () => {
-    const { status: mediaLibraryStatus } = await MediaLibrary.requestPermissionsAsync();
-    const { status: imagePickerStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (mediaLibraryStatus !== 'granted' || imagePickerStatus !== 'granted') {
-      Alert.alert(
-        'Permissions Required',
-        'This app needs access to your photo library to work properly.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
+const getTimeParts = (date, is24h) => {
+  const hours24 = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = date.getSeconds();
+  let hours = hours24;
+  let period = '';
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-        base64: false,
-      });
+  if (!is24h) {
+    period = hours24 >= 12 ? 'PM' : 'AM';
+    hours = hours24 % 12;
+    hours = hours === 0 ? 12 : hours;
+  }
 
-      if (!result.canceled && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
-        setProcessedImage(null);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to pick image: ' + error.message);
-    }
-  };
+  return { hours, minutes, seconds, period };
+};
 
-  const processImage = async () => {
-    if (!selectedImage) {
-      Alert.alert('No Image', 'Please select an image first.');
-      return;
-    }
+const formatDate = (date) => {
+  const day = DAYS[date.getDay()];
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${day}, ${dd}.${mm}.${yyyy}`;
+};
 
-    setIsProcessing(true);
-    setProgress(0);
-    setProgressText('Loading image...');
-
-    try {
-      const processedUri = await imageProcessor.processImage(
-        selectedImage,
-        sortMode,
-        thresholds,
-        (progress, text) => {
-          setProgress(progress);
-          setProgressText(text);
-        }
-      );
-      
-      setProcessedImage(processedUri);
-      setIsProcessing(false);
-      setProgressText('Complete!');
-      
-    } catch (error) {
-      console.error('Processing error:', error);
-      Alert.alert('Error', 'Failed to process image: ' + error.message);
-      setIsProcessing(false);
-    }
-  };
-
-  const saveImage = async () => {
-    if (!processedImage) {
-      Alert.alert('No Processed Image', 'Please process an image first.');
-      return;
-    }
-
-    try {
-      const asset = await MediaLibrary.createAssetAsync(processedImage);
-      Alert.alert('Success', 'Image saved to your photo library!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save image: ' + error.message);
-    }
-  };
-
-  const resetImage = () => {
-    setSelectedImage(null);
-    setProcessedImage(null);
-    setProgress(0);
-    setProgressText('');
-  };
+const DotMatrixText = ({
+  text,
+  dotSize,
+  dotGap,
+  charGap,
+  color,
+  inactiveColor,
+  dimmedChars = '',
+}) => {
+  const characters = text.split('');
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>ASDF Pixel Sort</Text>
-          <Text style={styles.subtitle}>Kim Asendorf Algorithm</Text>
-        </View>
+    <View style={styles.matrixRow}>
+      {characters.map((char, index) => {
+        const matrix = DOT_MATRIX[char] || DOT_MATRIX[' '];
+        const isDimmed = dimmedChars.includes(char);
 
-        {/* Image Display */}
-        <View style={styles.imageContainer}>
-          {selectedImage ? (
-            <View style={styles.imageWrapper}>
-              <Image source={{ uri: selectedImage }} style={styles.image} />
-              {processedImage && (
-                <View style={styles.processedImageWrapper}>
-                  <Text style={styles.processedLabel}>Processed:</Text>
-                  <Image source={{ uri: processedImage }} style={styles.image} />
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.placeholderContainer}>
-              <Text style={styles.placeholderText}>Select an image to begin</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Processing Progress */}
-        {isProcessing && (
-          <View style={styles.progressContainer}>
-            <ActivityIndicator size="large" color="#6366f1" />
-            <Text style={styles.progressText}>{progressText}</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progress}%` }]} />
-            </View>
-            <Text style={styles.progressPercent}>{Math.round(progress)}%</Text>
-          </View>
-        )}
-
-        {/* Sort Mode Selection */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Sort Mode</Text>
-          <View style={styles.modeContainer}>
-            {sortModes.map((mode) => (
-              <TouchableOpacity
-                key={mode.id}
-                style={[
-                  styles.modeButton,
-                  sortMode === mode.id && styles.modeButtonActive,
-                  { borderColor: mode.color }
-                ]}
-                onPress={() => setSortMode(mode.id)}
+        return (
+          <View
+            key={`${char}-${index}`}
+            style={[
+              styles.matrixChar,
+              { marginRight: index === characters.length - 1 ? 0 : charGap },
+            ]}
+          >
+            {matrix.map((row, rowIndex) => (
+              <View
+                key={rowIndex}
+                style={{
+                  flexDirection: 'row',
+                  marginBottom: rowIndex === matrix.length - 1 ? 0 : dotGap,
+                }}
               >
-                <View style={[styles.modeColor, { backgroundColor: mode.color }]} />
-                <Text style={[
-                  styles.modeText,
-                  sortMode === mode.id && styles.modeTextActive
-                ]}>
-                  {mode.name}
-                </Text>
-              </TouchableOpacity>
+                {row.split('').map((cell, colIndex) => {
+                  const isOn = cell === '1' && !isDimmed;
+                  return (
+                    <View
+                      key={`${rowIndex}-${colIndex}`}
+                      style={{
+                        width: dotSize,
+                        height: dotSize,
+                        borderRadius: dotSize / 2,
+                        backgroundColor: isOn ? color : inactiveColor,
+                        marginRight: colIndex === row.length - 1 ? 0 : dotGap,
+                        opacity: isOn ? 1 : 0.25,
+                      }}
+                    />
+                  );
+                })}
+              </View>
             ))}
           </View>
-          <Text style={styles.modeDescription}>
-            {sortModes[sortMode].description}
-          </Text>
-        </View>
-
-        {/* Threshold Controls */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Threshold Settings</Text>
-          
-          {sortMode <= 1 && (
-            <>
-              <Text style={styles.sliderLabel}>
-                White Threshold: {thresholds.white}
-              </Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={-16581375}
-                maximumValue={0}
-                value={thresholds.white}
-                onValueChange={(value) => 
-                  setThresholds(prev => ({ ...prev, white: Math.round(value) }))
-                }
-                minimumTrackTintColor="#6366f1"
-                maximumTrackTintColor="#e5e7eb"
-                thumbStyle={styles.sliderThumb}
-              />
-              
-              <Text style={styles.sliderLabel}>
-                Black Threshold: {thresholds.black}
-              </Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={-16581375}
-                maximumValue={0}
-                value={thresholds.black}
-                onValueChange={(value) => 
-                  setThresholds(prev => ({ ...prev, black: Math.round(value) }))
-                }
-                minimumTrackTintColor="#6366f1"
-                maximumTrackTintColor="#e5e7eb"
-                thumbStyle={styles.sliderThumb}
-              />
-            </>
-          )}
-          
-          {sortMode >= 2 && (
-            <>
-              <Text style={styles.sliderLabel}>
-                Bright Threshold: {thresholds.bright}
-              </Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={255}
-                value={thresholds.bright}
-                onValueChange={(value) => 
-                  setThresholds(prev => ({ ...prev, bright: Math.round(value) }))
-                }
-                minimumTrackTintColor="#6366f1"
-                maximumTrackTintColor="#e5e7eb"
-                thumbStyle={styles.sliderThumb}
-              />
-              
-              <Text style={styles.sliderLabel}>
-                Dark Threshold: {thresholds.dark}
-              </Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={255}
-                value={thresholds.dark}
-                onValueChange={(value) => 
-                  setThresholds(prev => ({ ...prev, dark: Math.round(value) }))
-                }
-                minimumTrackTintColor="#6366f1"
-                maximumTrackTintColor="#e5e7eb"
-                thumbStyle={styles.sliderThumb}
-              />
-            </>
-          )}
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.primaryButton} onPress={pickImage}>
-            <Text style={styles.primaryButtonText}>Select Image</Text>
-          </TouchableOpacity>
-          
-          {selectedImage && (
-            <TouchableOpacity 
-              style={[styles.primaryButton, isProcessing && styles.disabledButton]} 
-              onPress={processImage}
-              disabled={isProcessing}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isProcessing ? 'Processing...' : 'Apply Pixel Sort'}
-              </Text>
-            </TouchableOpacity>
-          )}
-          
-          {processedImage && (
-            <TouchableOpacity style={styles.secondaryButton} onPress={saveImage}>
-              <Text style={styles.secondaryButtonText}>Save to Gallery</Text>
-            </TouchableOpacity>
-          )}
-          
-          {selectedImage && (
-            <TouchableOpacity style={styles.tertiaryButton} onPress={resetImage}>
-              <Text style={styles.tertiaryButtonText}>Reset</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </ScrollView>
+        );
+      })}
     </View>
+  );
+};
+
+const ToggleChip = ({ label, active, onPress }) => (
+  <TouchableOpacity
+    activeOpacity={0.8}
+    onPress={onPress}
+    style={[styles.chip, active && styles.chipActive]}
+  >
+    <View style={[styles.chipDot, active && styles.chipDotActive]} />
+    <Text style={[styles.chipText, active && styles.chipTextActive]}>
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
+export default function App() {
+  const { width } = useWindowDimensions();
+  const [now, setNow] = useState(new Date());
+  const [colonOn, setColonOn] = useState(true);
+  const [is24h, setIs24h] = useState(true);
+  const [showSeconds, setShowSeconds] = useState(true);
+  const [blinkColon, setBlinkColon] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+      setColonOn((prev) => !prev);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const { hours, minutes, seconds, period } = useMemo(
+    () => getTimeParts(now, is24h),
+    [now, is24h]
+  );
+  const hourText = is24h
+    ? String(hours).padStart(2, '0')
+    : String(hours).padStart(2, ' ');
+  const minuteText = String(minutes).padStart(2, '0');
+  const secondText = String(seconds).padStart(2, '0');
+  const timeText = showSeconds
+    ? `${hourText}:${minuteText}:${secondText}`
+    : `${hourText}:${minuteText}`;
+
+  const dateText = useMemo(() => formatDate(now), [now]);
+  const availableWidth = Math.max(
+    160,
+    width - PANEL_HORIZONTAL * 2 - PANEL_PADDING * 2
+  );
+  const dotSize = useMemo(
+    () => getDotSize(timeText, availableWidth, DOT_GAP, CHAR_GAP),
+    [timeText, availableWidth]
+  );
+  const dimmedChars = blinkColon && !colonOn ? ':' : '';
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="light" />
+      <View style={styles.header}>
+        <View style={styles.brandRow}>
+          <View style={styles.brandDot} />
+          <Text style={styles.brandText}>NOTHING OS CLOCK</Text>
+        </View>
+        <Text style={styles.subtitle}>Sofort bereit</Text>
+      </View>
+
+      <View style={styles.panel}>
+        <View style={styles.panelTopRow}>
+          <Text style={styles.panelLabel}>DOT MATRIX</Text>
+          <View
+            style={[
+              styles.secondsDot,
+              colonOn ? styles.secondsDotOn : styles.secondsDotOff,
+            ]}
+          />
+        </View>
+
+        <View style={styles.timeRow}>
+          <DotMatrixText
+            text={timeText}
+            dotSize={dotSize}
+            dotGap={DOT_GAP}
+            charGap={CHAR_GAP}
+            color="#f5f5f5"
+            inactiveColor="#1a1a1a"
+            dimmedChars={dimmedChars}
+          />
+        </View>
+
+        <View style={styles.dateRow}>
+          <Text style={styles.dateText}>{dateText}</Text>
+          {!is24h && <Text style={styles.periodText}>{period}</Text>}
+        </View>
+      </View>
+
+      <View style={styles.controls}>
+        <ToggleChip
+          label="24H"
+          active={is24h}
+          onPress={() => setIs24h((prev) => !prev)}
+        />
+        <ToggleChip
+          label="SEK"
+          active={showSeconds}
+          onPress={() => setShowSeconds((prev) => !prev)}
+        />
+        <ToggleChip
+          label="BLINK"
+          active={blinkColon}
+          onPress={() => setBlinkColon((prev) => !prev)}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
+    backgroundColor: '#050505',
+    paddingBottom: 24,
   },
   header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  brandRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#94a3b8',
-    marginTop: 5,
-  },
-  imageContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  imageWrapper: {
-    alignItems: 'center',
-  },
-  image: {
-    width: screenWidth - 40,
-    height: (screenWidth - 40) * 0.75,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  processedImageWrapper: {
-    alignItems: 'center',
-  },
-  processedLabel: {
-    color: '#94a3b8',
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  placeholderContainer: {
-    height: (screenWidth - 40) * 0.75,
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#334155',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    color: '#64748b',
-    fontSize: 18,
-  },
-  progressContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-    alignItems: 'center',
-  },
-  progressText: {
-    color: '#ffffff',
-    fontSize: 16,
-    marginVertical: 10,
-  },
-  progressBar: {
-    width: '100%',
+  brandDot: {
+    width: 8,
     height: 8,
-    backgroundColor: '#1e293b',
     borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#6366f1',
-  },
-  progressPercent: {
-    color: '#94a3b8',
-    marginTop: 5,
-  },
-  sectionContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 15,
-  },
-  modeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  modeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1e293b',
-    borderRadius: 8,
-    borderWidth: 2,
-    padding: 12,
-    marginBottom: 10,
-    width: '48%',
-  },
-  modeButtonActive: {
-    backgroundColor: '#312e81',
-  },
-  modeColor: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    backgroundColor: '#ff3b30',
     marginRight: 8,
   },
-  modeText: {
-    color: '#94a3b8',
+  brandText: {
+    color: '#f5f5f5',
+    fontSize: 12,
+    letterSpacing: 2,
+  },
+  subtitle: {
+    color: '#7c7c7c',
+    fontSize: 12,
+    letterSpacing: 1,
+    marginTop: 6,
+  },
+  panel: {
+    marginTop: 24,
+    marginHorizontal: PANEL_HORIZONTAL,
+    padding: PANEL_PADDING,
+    backgroundColor: '#0d0d0d',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#1f1f1f',
+  },
+  panelTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  panelLabel: {
+    color: '#8c8c8c',
+    fontSize: 11,
+    letterSpacing: 2,
+  },
+  secondsDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ff3b30',
+  },
+  secondsDotOn: {
+    backgroundColor: '#ff3b30',
+  },
+  secondsDotOff: {
+    backgroundColor: 'transparent',
+  },
+  timeRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateRow: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  dateText: {
+    color: '#9a9a9a',
     fontSize: 14,
-    fontWeight: '500',
+    letterSpacing: 1,
   },
-  modeTextActive: {
-    color: '#ffffff',
+  periodText: {
+    color: '#f5f5f5',
+    fontSize: 12,
+    letterSpacing: 2,
+    marginTop: 4,
   },
-  modeDescription: {
-    color: '#64748b',
-    fontSize: 14,
-    fontStyle: 'italic',
+  controls: {
+    marginTop: 24,
+    marginHorizontal: 20,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
-  sliderLabel: {
-    color: '#ffffff',
-    fontSize: 16,
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1f1f1f',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: '#0d0d0d',
+    marginRight: 10,
     marginBottom: 10,
   },
-  slider: {
-    width: '100%',
-    height: 40,
-    marginBottom: 20,
+  chipActive: {
+    borderColor: '#f5f5f5',
+    backgroundColor: '#121212',
   },
-  sliderThumb: {
-    backgroundColor: '#6366f1',
-    width: 20,
-    height: 20,
+  chipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#2b2b2b',
+    marginRight: 8,
   },
-  buttonContainer: {
-    paddingHorizontal: 20,
-    gap: 12,
+  chipDotActive: {
+    backgroundColor: '#f5f5f5',
   },
-  primaryButton: {
-    backgroundColor: '#6366f1',
-    paddingVertical: 16,
-    borderRadius: 12,
+  chipText: {
+    color: '#8c8c8c',
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+  chipTextActive: {
+    color: '#f5f5f5',
+  },
+  matrixRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: '#059669',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  tertiaryButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#374151',
-    alignItems: 'center',
-  },
-  tertiaryButtonText: {
-    color: '#9ca3af',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  disabledButton: {
-    backgroundColor: '#374151',
+  matrixChar: {
+    alignItems: 'flex-start',
   },
 });
